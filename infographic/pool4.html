@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>How POOL4 works — explained by pepes armed with AI</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 1800px; overflow: hidden; }
+  body {
+    font-family: "DejaVu Sans", "Liberation Sans", sans-serif;
+    color: #e8fbe9;
+    background:
+      radial-gradient(circle at 15% 8%, rgba(57,255,136,.18), transparent 35%),
+      radial-gradient(circle at 90% 40%, rgba(255,46,170,.14), transparent 35%),
+      radial-gradient(circle at 10% 85%, rgba(0,200,255,.12), transparent 35%),
+      linear-gradient(#070b1a, #0b1228 50%, #070b1a);
+    position: relative;
+  }
+  /* faint cyber grid */
+  body::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(57,255,136,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(57,255,136,.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .wrap { position: relative; padding: 34px 48px 0; }
+
+  header { height: 222px; position: relative; text-align: center; }
+  header h1 {
+    font-size: 70px; font-weight: 900; letter-spacing: 2px; line-height: 1;
+    padding-top: 30px; color: #39ff88;
+    text-shadow: 0 0 18px rgba(57,255,136,.7), 5px 5px 0 #ff2eaa;
+  }
+  header h2 {
+    margin-top: 14px; font-size: 28px; font-weight: 700; color: #fff;
+  }
+  header h2 span { color: #ff5cc0; }
+  header p { margin-top: 10px; font-size: 17px; color: #9fb6c9; }
+  header svg.hero { position: absolute; top: 6px; width: 180px; height: 197px; }
+  header svg.left { left: -30px; }
+  header svg.right { right: -30px; }
+
+  .banner {
+    margin-top: 6px; height: 92px; border-radius: 18px;
+    border: 3px solid #39ff88; background: rgba(57,255,136,.08);
+    box-shadow: 0 0 22px rgba(57,255,136,.35) inset;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 28px;
+  }
+  .banner .tag { font-size: 18px; color: #9fb6c9; letter-spacing: 3px; font-weight: 700; }
+  .banner .pool { font-size: 34px; font-weight: 900; color: #fff; }
+  .banner .pool b { color: #39ff88; }
+  .banner .chain { font-size: 17px; color: #9fb6c9; text-align: right; line-height: 1.4; }
+  .banner .chain code { color: #ffd84a; font-family: "DejaVu Sans Mono", monospace; font-size: 15px; }
+
+  .steps { margin-top: 22px; display: flex; flex-direction: column; gap: 14px; }
+  .card {
+    height: 178px; display: flex; align-items: center; gap: 26px;
+    border-radius: 20px; padding: 0 26px 0 18px;
+    background: linear-gradient(90deg, rgba(20,32,64,.95), rgba(14,22,46,.9));
+    border: 2px solid #22345e; position: relative;
+  }
+  .card .num {
+    position: absolute; left: -14px; top: -12px; width: 52px; height: 52px; border-radius: 50%;
+    background: #ff2eaa; color: #fff; font-weight: 900; font-size: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border: 3px solid #070b1a; box-shadow: 0 0 14px rgba(255,46,170,.8);
+  }
+  .card svg.art { width: 230px; height: 180px; flex: none; }
+  .card .txt h3 { font-size: 36px; font-weight: 900; color: #39ff88; letter-spacing: 1px; }
+  .card .txt p { margin-top: 8px; font-size: 22px; line-height: 1.38; color: #e2ecf5; }
+  .card .txt p b { color: #ffd84a; }
+  .card .txt .ex {
+    margin-top: 10px; font-size: 18px; color: #9fe8ff;
+    border-left: 4px solid #00c8ff; padding-left: 10px;
+  }
+  .arrow {
+    position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
+    width: 0; height: 0; border-left: 16px solid transparent; border-right: 16px solid transparent;
+    border-top: 18px solid #39ff88; filter: drop-shadow(0 0 6px #39ff88); z-index: 2;
+  }
+
+  .stats {
+    margin-top: 20px; border-radius: 20px; padding: 18px 24px 20px;
+    border: 3px solid #ff2eaa; background: rgba(255,46,170,.07);
+    box-shadow: 0 0 22px rgba(255,46,170,.3) inset;
+  }
+  .stats .head { display: flex; justify-content: space-between; align-items: baseline; }
+  .stats h3 { font-size: 30px; font-weight: 900; color: #ff5cc0; letter-spacing: 2px; }
+  .stats .head span { font-size: 16px; color: #9fb6c9; }
+  .grid { margin-top: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stat {
+    background: rgba(7,11,26,.8); border: 2px solid #2a3c66; border-radius: 14px;
+    padding: 10px 14px; height: 100px;
+  }
+  .stat .v { font-size: 29px; font-weight: 900; color: #fff; white-space: nowrap; }
+  .stat .v small { font-size: 18px; color: #39ff88; }
+  .stat .l { margin-top: 6px; font-size: 16px; color: #9fb6c9; line-height: 1.3; }
+
+  footer { margin-top: 16px; text-align: center; }
+  .loop {
+    display: inline-flex; align-items: center; gap: 12px; font-size: 25px; font-weight: 900;
+    color: #fff; padding: 12px 26px; border-radius: 40px; border: 2px dashed #39ff88;
+  }
+  .loop i { font-style: normal; color: #39ff88; }
+  footer p { margin-top: 12px; font-size: 15px; color: #7189a3; }
+</style>
+</head>
+<body>
+
+<!-- Reusable "pepe armed with AI" frog: tactical helmet, glowing AI visor chip, vest -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <symbol id="frog" viewBox="0 0 200 200">
+      <!-- body + tactical vest -->
+      <path d="M38 200 Q40 140 100 136 Q160 140 162 200 Z" fill="#4f9a3a" stroke="#0b1a0b" stroke-width="4"/>
+      <path d="M58 200 Q62 150 100 148 Q138 150 142 200 Z" fill="#3b4a2e" stroke="#0b1a0b" stroke-width="3"/>
+      <rect x="74" y="164" width="22" height="16" rx="3" fill="#2c3822" stroke="#0b1a0b" stroke-width="2"/>
+      <rect x="104" y="164" width="22" height="16" rx="3" fill="#2c3822" stroke="#0b1a0b" stroke-width="2"/>
+      <circle cx="100" cy="190" r="5" fill="#39ff88" filter="url(#glow)"/>
+      <!-- head -->
+      <path d="M26 98 Q22 52 62 40 Q100 30 138 40 Q178 52 174 98 Q172 134 100 138 Q28 134 26 98 Z"
+            fill="#5fb547" stroke="#0b1a0b" stroke-width="4"/>
+      <!-- eyes -->
+      <ellipse cx="72" cy="66" rx="27" ry="23" fill="#fff" stroke="#0b1a0b" stroke-width="4"/>
+      <ellipse cx="130" cy="66" rx="27" ry="23" fill="#fff" stroke="#0b1a0b" stroke-width="4"/>
+      <circle cx="80" cy="70" r="9" fill="#0b1a0b"/>
+      <circle cx="138" cy="70" r="9" fill="#0b1a0b"/>
+      <circle cx="83" cy="67" r="3" fill="#fff"/>
+      <circle cx="141" cy="67" r="3" fill="#fff"/>
+      <!-- droopy pepe lids -->
+      <path d="M44 62 Q72 36 100 62 Q72 54 44 62 Z" fill="#5fb547" stroke="#0b1a0b" stroke-width="3"/>
+      <path d="M102 62 Q130 36 158 62 Q130 54 102 62 Z" fill="#5fb547" stroke="#0b1a0b" stroke-width="3"/>
+      <!-- lips -->
+      <path d="M48 106 Q100 96 156 104 Q150 122 100 122 Q54 122 48 106 Z" fill="#b8553e" stroke="#0b1a0b" stroke-width="4"/>
+      <path d="M52 108 Q100 112 152 106" fill="none" stroke="#0b1a0b" stroke-width="3"/>
+      <!-- tactical helmet -->
+      <path d="M34 54 Q38 6 100 4 Q162 6 166 54 Q100 34 34 54 Z" fill="#3b4a2e" stroke="#0b1a0b" stroke-width="4"/>
+      <rect x="84" y="14" width="32" height="14" rx="4" fill="#0b1a0b"/>
+      <rect x="88" y="17" width="24" height="8" rx="2" fill="#39ff88" filter="url(#glow)"/>
+      <!-- AI antenna -->
+      <line x1="150" y1="22" x2="166" y2="0" stroke="#0b1a0b" stroke-width="4"/>
+      <circle cx="166" cy="2" r="6" fill="#ff2eaa" filter="url(#glow)"/>
+      <!-- AI earpiece -->
+      <circle cx="28" cy="88" r="10" fill="#1d2640" stroke="#0b1a0b" stroke-width="3"/>
+      <circle cx="28" cy="88" r="4" fill="#00c8ff" filter="url(#glow)"/>
+    </symbol>
+
+    <!-- AI blaster -->
+    <symbol id="blaster" viewBox="0 0 120 50">
+      <rect x="0" y="14" width="88" height="22" rx="6" fill="#1d2640" stroke="#0b1a0b" stroke-width="3"/>
+      <rect x="86" y="19" width="32" height="12" rx="3" fill="#2a3c66" stroke="#0b1a0b" stroke-width="3"/>
+      <rect x="16" y="34" width="16" height="16" rx="3" fill="#1d2640" stroke="#0b1a0b" stroke-width="3"/>
+      <rect x="10" y="20" width="60" height="6" rx="3" fill="#39ff88" filter="url(#glow)"/>
+    </symbol>
+
+    <symbol id="coin" viewBox="0 0 40 40">
+      <circle cx="20" cy="20" r="18" fill="#ffd84a" stroke="#0b1a0b" stroke-width="3"/>
+      <text x="20" y="25" font-size="11" font-weight="900" fill="#0b1a0b" text-anchor="middle" font-family="DejaVu Sans">FWA</text>
+    </symbol>
+
+    <symbol id="eth" viewBox="0 0 40 60">
+      <path d="M20 0 L40 30 L20 42 L0 30 Z" fill="#8fa3ff" stroke="#0b1a0b" stroke-width="3"/>
+      <path d="M0 35 L20 47 L40 35 L20 60 Z" fill="#6b7fe0" stroke="#0b1a0b" stroke-width="3"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header>
+    <svg class="hero left" viewBox="0 0 210 230">
+      <use href="#frog" x="0" y="10" width="200" height="200"/>
+      <use href="#blaster" x="70" y="170" width="140" height="58"/>
+      <text x="117" y="183" font-size="13" font-weight="900" fill="#ff5cc0" text-anchor="middle" font-family="DejaVu Sans">AI</text>
+    </svg>
+    <h1>HOW POOL4 WORKS</h1>
+    <h2>explained by <span>pepes armed with AI</span></h2>
+    <p>a self-running Uniswap v4 pool that trims, burns, rewards &amp; defends its own token</p>
+    <svg class="hero right" viewBox="0 0 210 230">
+      <use href="#frog" x="10" y="10" width="200" height="200"/>
+      <g transform="translate(140 170) scale(-1 1)"><use href="#blaster" x="0" y="0" width="140" height="58"/></g>
+      <text x="93" y="183" font-size="13" font-weight="900" fill="#ff5cc0" text-anchor="middle" font-family="DejaVu Sans">AI</text>
+    </svg>
+  </header>
+
+  <div class="banner">
+    <div>
+      <div class="tag">EXAMPLE POOL</div>
+      <div class="pool"><b>Fake World Assets ($FWA)</b> / ETH</div>
+    </div>
+    <div class="chain">Uniswap v4 · Ethereum mainnet<br>hook <code>0x087a…CA840</code></div>
+  </div>
+
+  <div class="steps">
+
+    <!-- 1 SWAP -->
+    <div class="card">
+      <div class="num">1</div>
+      <svg class="art" viewBox="0 0 230 180">
+        <use href="#frog" x="0" y="20" width="160" height="160"/>
+        <rect x="140" y="30" width="86" height="96" rx="10" fill="#0e1a36" stroke="#00c8ff" stroke-width="3" filter="url(#glow)"/>
+        <use href="#eth" x="152" y="40" width="22" height="33"/>
+        <text x="190" y="66" font-size="22" fill="#39ff88" font-weight="900" font-family="DejaVu Sans">⇄</text>
+        <use href="#coin" x="168" y="84" width="34" height="34"/>
+      </svg>
+      <div class="txt">
+        <h3>YOU SWAP</h3>
+        <p>Buy or sell <b>FWA</b> for <b>ETH</b> like any Uniswap pool. A <b>1% fee</b> pays the protocol.
+           The hook runs only <i>after</i> your trade settles, so your quote never changes.</p>
+      </div>
+      <div class="arrow"></div>
+    </div>
+
+    <!-- 2 CAP CHECK -->
+    <div class="card">
+      <div class="num">2</div>
+      <svg class="art" viewBox="0 0 230 180">
+        <use href="#frog" x="0" y="20" width="160" height="160"/>
+        <!-- coin stack vs cap line -->
+        <use href="#coin" x="170" y="140" width="36" height="36"/>
+        <use href="#coin" x="170" y="118" width="36" height="36"/>
+        <use href="#coin" x="170" y="96" width="36" height="36"/>
+        <use href="#coin" x="170" y="74" width="36" height="36"/>
+        <line x1="150" y1="58" x2="228" y2="58" stroke="#ff2eaa" stroke-width="4" stroke-dasharray="8 5" filter="url(#glow)"/>
+        <text x="189" y="50" font-size="16" fill="#ff5cc0" font-weight="900" text-anchor="middle" font-family="DejaVu Sans">CAP</text>
+        <!-- scanner laser -->
+        <path d="M130 70 L170 64 L170 100 Z" fill="rgba(57,255,136,.35)"/>
+      </svg>
+      <div class="txt">
+        <h3>THE HOOK CHECKS THE STASH</h3>
+        <p>The pool may only hold so many tokens (the <b>cap</b>). If sells push FWA <b>over the cap</b>,
+           the hook pulls the extra out, evenly on both sides, so the price doesn't move.</p>
+        <div class="ex">FWA right now: 844K in the pool, cap is 986K, so nothing to trim yet.</div>
+      </div>
+      <div class="arrow"></div>
+    </div>
+
+    <!-- 3 BURN / REWARD -->
+    <div class="card">
+      <div class="num">3</div>
+      <svg class="art" viewBox="0 0 230 180">
+        <!-- donut 85 / 15 : circumference 2πr, r=62 → 389.6 -->
+        <g transform="translate(92 92) rotate(-90)">
+          <circle r="62" fill="none" stroke="#1d2640" stroke-width="34"/>
+          <circle r="62" fill="none" stroke="#ff6a2a" stroke-width="34" stroke-dasharray="331.2 389.6"/>
+          <circle r="62" fill="none" stroke="#39ff88" stroke-width="34" stroke-dasharray="58.4 389.6" stroke-dashoffset="-331.2" filter="url(#glow)"/>
+        </g>
+        <text x="92" y="90" font-size="30" font-weight="900" fill="#fff" text-anchor="middle" font-family="DejaVu Sans">85%</text>
+        <text x="92" y="112" font-size="15" font-weight="900" fill="#ff8a4a" text-anchor="middle" font-family="DejaVu Sans">BURN 🔥</text>
+        <text x="196" y="40" font-size="26" font-weight="900" fill="#39ff88" text-anchor="middle" font-family="DejaVu Sans">15%</text>
+        <text x="196" y="60" font-size="12" font-weight="900" fill="#39ff88" text-anchor="middle" font-family="DejaVu Sans">REWARDS</text>
+        <use href="#frog" x="166" y="96" width="72" height="72"/>
+      </svg>
+      <div class="txt">
+        <h3>85% BURN · 15% REWARDS</h3>
+        <p>Trimmed tokens go two ways: <b>85% are burned</b> (sent to 0x…dEaD forever),
+           <b>15% become rewards</b>. By default the 15% splits into stakers (4.5%), bonds (6%) and AI inference nodes (4.5%).</p>
+      </div>
+      <div class="arrow"></div>
+    </div>
+
+    <!-- 4 BUY WALL -->
+    <div class="card">
+      <div class="num">4</div>
+      <svg class="art" viewBox="0 0 230 180">
+        <!-- falling price line bouncing off wall -->
+        <polyline points="8,24 46,36 78,30 112,70 140,62 166,104 190,96 214,72" fill="none" stroke="#ff5cc0" stroke-width="4" filter="url(#glow)"/>
+        <rect x="0" y="112" width="230" height="14" rx="4" fill="#39ff88" filter="url(#glow)"/>
+        <text x="115" y="123" font-size="11" font-weight="900" fill="#0b1a0b" text-anchor="middle" font-family="DejaVu Sans">ETH FLOOR BID</text>
+        <use href="#frog" x="10" y="122" width="62" height="62"/>
+        <use href="#frog" x="84" y="122" width="62" height="62"/>
+        <use href="#frog" x="158" y="122" width="62" height="62"/>
+      </svg>
+      <div class="txt">
+        <h3>ETH BUY WALL</h3>
+        <p>The ETH pulled out during trims becomes a <b>floor bid</b> under the price. If FWA dips into it,
+           the wall buys. No new tokens are ever minted: it's recycled ETH. Keepers then rebalance it for a small tip.</p>
+      </div>
+      <div class="arrow"></div>
+    </div>
+
+    <!-- 5 STAKE -->
+    <div class="card">
+      <div class="num">5</div>
+      <svg class="art" viewBox="0 0 230 180">
+        <rect x="118" y="20" width="106" height="140" rx="14" fill="#1d2640" stroke="#0b1a0b" stroke-width="4"/>
+        <circle cx="171" cy="78" r="30" fill="#2a3c66" stroke="#00c8ff" stroke-width="4" filter="url(#glow)"/>
+        <line x1="171" y1="56" x2="171" y2="100" stroke="#00c8ff" stroke-width="4"/>
+        <line x1="149" y1="78" x2="193" y2="78" stroke="#00c8ff" stroke-width="4"/>
+        <text x="171" y="140" font-size="16" font-weight="900" fill="#39ff88" text-anchor="middle" font-family="DejaVu Sans">VAULT</text>
+        <use href="#frog" x="0" y="30" width="140" height="140"/>
+        <use href="#coin" x="96" y="2" width="26" height="26"/>
+        <use href="#coin" x="122" y="-4" width="20" height="20"/>
+      </svg>
+      <div class="txt">
+        <h3>STAKE &amp; CHILL</h3>
+        <p>Deposit tokens, get vault shares. Rewards drip in slowly and steadily,
+           so <b>each share is worth more tokens over time</b>. Bonds turn their 6% into ETH that pays for AI compute.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="head">
+      <h3>LIVE POOL SNAPSHOT · $FWA</h3>
+      <span>read on-chain from the hook · 5 Oct 2026</span>
+    </div>
+    <div class="grid">
+      <div class="stat"><div class="v">4.48 <small>ETH</small></div><div class="l">ETH in the pool</div></div>
+      <div class="stat"><div class="v">844K <small>FWA</small></div><div class="l">FWA in the pool<br>(cap 986K)</div></div>
+      <div class="stat"><div class="v">~$0.0144</div><div class="l">price per FWA<br>(≈188K FWA per ETH)</div></div>
+      <div class="stat"><div class="v">1% <small>fee</small></div><div class="l">swap fee · 85/15 burn/reward</div></div>
+      <div class="stat"><div class="v">5.27M <small>FWA</small></div><div class="l">held by the 0x…dEaD burn address</div></div>
+      <div class="stat"><div class="v">0.34 <small>ETH</small></div><div class="l">+ 56.7K FWA in fees collected</div></div>
+      <div class="stat"><div class="v">197K <small>/day</small></div><div class="l">max cap shrink per day<br>(anti wash-trading)</div></div>
+      <div class="stat"><div class="v">ON <small>✓</small></div><div class="l">market open · buy-wall rebalancing enabled</div></div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="loop">TRADE <i>→</i> TRIM <i>→</i> BURN + REWARD <i>→</i> ETH FLOOR <i>→</i> REPEAT <i>↻</i></div>
+    <p>pool4.imd.fun · unaudited, owner-operated protocol: the hook owner can close the market. Not financial advice.</p>
+  </footer>
+</div>
+</body>
+</html>
